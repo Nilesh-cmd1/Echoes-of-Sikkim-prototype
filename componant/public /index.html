@@ -5,6 +5,9 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Echoes of Sikkim — Static Viewer</title>
   <meta name="description" content="Static viewer for Echoes of Sikkim data" />
+  <!-- Link your PWA manifest (the one you provided) -->
+  <link rel="manifest" href="/manifest.json" />
+  <meta name="theme-color" content="#d97706" />
 
   <style>
     :root{
@@ -39,7 +42,7 @@
       <svg width="36" height="36" viewBox="0 0 24 24" fill="none" aria-hidden><path d="M12 2L15 8l6 1-4.5 4 1 6L12 17 4.5 19 5.5 13 1 9l6-1 3-6z" fill="currentColor" style="color:var(--accent)"/></svg>
       <div>
         <h1>Echoes of Sikkim — Static Viewer</h1>
-        <div style="color:var(--muted);font-size:13px">Client-side renderer for your JSON data (drop manifest.json & JSON files in repo)</div>
+        <div style="color:var(--muted);font-size:13px">Client-side renderer for your JSON data. Keep your PWA manifest as <code>/manifest.json</code>.</div>
       </div>
     </header>
 
@@ -50,35 +53,13 @@
           <button id="refresh" class="btn">Refresh</button>
         </div>
 
-        <div id="list">
-          Loading…
-        </div>
+        <div id="list">Loading…</div>
       </aside>
 
       <main class="content" id="main">
         <div id="welcome">
           <h2>Welcome</h2>
-          <p style="color:var(--muted)">Click an item on the left to load its JSON data and content. This viewer expects a <code>manifest.json</code> at the site root that lists your JSON files and metadata (example below).</p>
-
-          <h3 style="margin-top:18px">Example manifest.json</h3>
-          <pre class="jsondump">[
-  {
-    "slug": "lingdum-monastery",
-    "title": "Lingdum Monastery",
-    "summary": "A modern monastery in Sikkim",
-    "json": "public/lingdum-monastery-meditation.json",
-    "image": "public/lingdum-monastery-modern-arch.jpg"
-  },
-  {
-    "slug": "pemayangtse",
-    "title": "Pemayangtse Monastery",
-    "summary": "Historic monastery near Pelling",
-    "json": "public/pemayangtse-monastery-mountain.json",
-    "image": "public/pemayangtse-monastery-mountain.jpg"
-  }
-]</pre>
-
-          <p style="color:var(--muted)">Create `manifest.json` in the repository root (or in <code>public/</code>) and use the paths above exactly relative to your site root. Put your JSON files and images into the `public/` folder on GitHub so they are served statically.</p>
+          <p style="color:var(--muted)">Click an item on the left to load its JSON data and content. The viewer expects a file named <code>data-manifest.json</code> at the site root (or in <code>public/</code>).</p>
         </div>
 
         <div id="page" style="display:none">
@@ -100,8 +81,8 @@
   </div>
 
   <script>
-    // Configuration: where to fetch the manifest
-    const MANIFEST_PATH = './manifest.json'; // put manifest.json into repo root or public/
+    // Use your PWA manifest as-is; viewer reads content-list from data-manifest.json
+    const DATA_MANIFEST_PATH = './data-manifest.json';
 
     const listEl = document.getElementById('list');
     const filterInput = document.getElementById('filter');
@@ -119,20 +100,20 @@
     async function fetchManifest() {
       listEl.innerHTML = 'Loading manifest…';
       try {
-        const r = await fetch(MANIFEST_PATH);
-        if (!r.ok) throw new Error('manifest not found ('+r.status+')');
+        const r = await fetch(DATA_MANIFEST_PATH);
+        if (!r.ok) throw new Error('data-manifest not found ('+r.status+')');
         const m = await r.json();
-        if (!Array.isArray(m)) throw new Error('manifest must be an array');
+        if (!Array.isArray(m)) throw new Error('data-manifest must be an array');
         items = m;
         renderList(items);
       } catch (err) {
-        listEl.innerHTML = '<div style="color:#ff8080;padding:10px">Error loading manifest: ' + err.message + '</div>';
+        listEl.innerHTML = '<div style="color:#ff8080;padding:10px">Error loading data-manifest: ' + err.message + '</div>';
       }
     }
 
     function renderList(data) {
       if (!data || data.length === 0) {
-        listEl.innerHTML = '<div style="color:var(--muted);padding:10px">No items found in manifest.json</div>';
+        listEl.innerHTML = '<div style="color:var(--muted);padding:10px">No items found in data-manifest.json</div>';
         return;
       }
       const q = filterInput.value.trim().toLowerCase();
@@ -141,7 +122,7 @@
       });
 
       listEl.innerHTML = filtered.map(it => `
-        <div class="item" data-json="${encodeURIComponent(it.json||'')}" data-title="${escapeHtml(it.title||'')}" data-summary="${escapeHtml(it.summary||'')}" onclick="loadItem('${encodeURIComponent(it.json||'')}', '${escapeHtml(it.title||'')}', '${escapeHtml(it.image||'')}', '${escapeHtml(it.summary||'')}')">
+        <div class="item" data-json="${encodeURIComponent(it.json||'')}" onclick="loadItem('${encodeURIComponent(it.json||'')}', '${escapeHtml(it.title||'')}', '${escapeHtml(it.image||'')}', '${escapeHtml(it.summary||'')}')">
           <img class="thumb" src="${it.image||''}" alt="">
           <div style="flex:1">
             <div class="title">${it.title||'(no title)'}</div>
@@ -151,7 +132,6 @@
       `).join('');
     }
 
-    // helper to escape single quotes for onclick params
     function escapeHtml(s){
       if(!s) return '';
       return s.replace(/'/g, "\\'").replace(/"/g,'&quot;').replace(/\n/g,' ');
@@ -173,33 +153,23 @@
         if(!r.ok) throw new Error('JSON not found ('+r.status+')');
         const data = await r.json();
         rawEl.textContent = JSON.stringify(data, null, 2);
-        // Render the JSON in HTML — this is a flexible, generic rendering.
         pageBody.innerHTML = renderDataAsHtml(data);
       } catch(err) {
         rawEl.textContent = 'Error: ' + err.message;
         pageBody.innerHTML = '<div style="color:#ff9a9a">Failed to load JSON: ' + err.message + '</div>';
       }
-
-      // scroll to top of content on load
       page.scrollTop = 0;
     }
 
     function renderDataAsHtml(data){
-      // If your JSON contains a "content" field with HTML or markdown, prefer that.
       if (!data) return '<div style="color:var(--muted)">No data</div>';
-
-      // If `data.content` is HTML, show it (be careful with untrusted HTML).
       if (typeof data.content === 'string' && /<\/?[a-z][\s\S]*>/i.test(data.content)) {
         return data.content;
       }
-
-      // If data has fields like title / description / body etc, render nicely
       const parts = [];
       if (data.title) parts.push(`<h3>${escapeText(data.title)}</h3>`);
       if (data.description) parts.push(`<p class="meta">${escapeText(data.description)}</p>`);
       if (data.body) parts.push(`<div>${escapeText(data.body).replace(/\\n/g,'<br>')}</div>`);
-
-      // If there's a list of sections or items, render them
       if (Array.isArray(data.sections)) {
         parts.push('<div>');
         for (const s of data.sections) {
@@ -210,8 +180,6 @@
         }
         parts.push('</div>');
       }
-
-      // If data is an object with many key-values, show a table
       if (Object.keys(data).length > 0 && parts.length === 0) {
         parts.push('<table style="width:100%;border-collapse:collapse">');
         for (const k of Object.keys(data)) {
@@ -221,12 +189,9 @@
         }
         parts.push('</table>');
       }
-
-      // If it's mostly structured, and nothing matched, show a JSON preview
       if (parts.length === 0) {
         parts.push(`<pre class="jsondump">${escapeText(JSON.stringify(data, null, 2))}</pre>`);
       }
-
       return parts.join('');
     }
 
@@ -234,11 +199,10 @@
       return (s||'').toString().replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
     }
 
-    // Wire up filter and refresh
     filterInput.addEventListener('input', () => renderList(items));
     refreshBtn.addEventListener('click', fetchManifest);
 
-    // Start on load
+    // Initialize
     fetchManifest();
   </script>
 </body>
