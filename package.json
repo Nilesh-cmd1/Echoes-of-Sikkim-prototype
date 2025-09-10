@@ -2,7 +2,6 @@
   "name": "my-v0-project",
   "version": "0.1.0",
   "private": true,
-  "homepage": "https://Nilesh-cmd1.github.io/Echoes-of-Sikkim-prototype",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
