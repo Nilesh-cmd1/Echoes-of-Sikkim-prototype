@@ -2,9 +2,13 @@
   "name": "my-v0-project",
   "version": "0.1.0",
   "private": true,
+  "homepage": "https://Nilesh-cmd1.github.io/Echoes-of-Sikkim-prototype",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
+    "export": "next export",
+    "predeploy": "npm run build && npm run export",
+    "deploy": "gh-pages -d out",
     "start": "next start",
     "lint": "next lint"
   },
@@ -69,6 +73,7 @@
     "postcss": "^8.5",
     "tailwindcss": "^4.1.9",
     "tw-animate-css": "1.3.3",
-    "typescript": "^5"
+    "typescript": "^5",
+    "gh-pages": "^5.0.0"
   }
 }
